@@ -4,12 +4,12 @@
              xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd">
     <persistence-unit name="hello"> <!-- DB -->
         <properties>
-            <!-- 필수 속성 -->
+            <!-- 필수 속성 --> <!-- H2 DB 사용, localhost:8082 로그인 설정과 똑같이 맞춰야 함 -->
             <property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>
             <property name="javax.persistence.jdbc.user" value="sa"/>
             <property name="javax.persistence.jdbc.password" value=""/>
             <property name="javax.persistence.jdbc.url" value="jdbc:h2:tcp://localhost/~/test"/>
-            <property name="hibernate.dialect" value="org.hibernate.dialect.H2Dialect"/> <!-- H2 DB 사용 -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.Oracle12cDialect"/>
 
             <!-- 옵션 -->
             <property name="hibernate.show_sql" value="true"/>
