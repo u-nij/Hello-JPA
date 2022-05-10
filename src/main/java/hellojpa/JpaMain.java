@@ -105,6 +105,7 @@ public class JpaMain {
         }
 */
 
+/*
         // =========== 엔티티 매핑 (Entity Mapping) ===========
 
         EntityManager emEM = emf.createEntityManager();
@@ -137,6 +138,60 @@ public class JpaMain {
             txEM.rollback();
         } finally {
             emEM.close();
+        }
+*/
+
+
+        // =========== 연관관계 매핑 기초 ===========
+
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        try {
+            Team team = new Team();
+            team.setName("TeamA");
+            em.persist(team); // 순수한 team 객체 상태
+
+            Member2 member = new Member2();
+            member.setUsername("member1");
+//            member.setTeamId(team.getId());  // 1) 연관관계 없을 때
+//            member.changeTeam(team); // 2) 단방향 연관관계 설정, 참조 저장 // 3) 양방향
+            em.persist(member);
+
+//            team.getMembers().add(member); // team 객체에 member 객체 추가 -> Member2.java에 추가
+            // members 리스트에 들어간 것이 없음
+
+            // * Team에 Member 넣는 방법 (Member2의 changeTeam() 주석 처리해야 함)
+            team.addMember(member);
+
+//            em.flush();
+//            em.clear();
+
+            // 깨끗해진 상태
+
+            Team findTeam = em.find(Team.class, team.getId()); // DB에서 새로 데이터를 가져옴
+            List<Member2> members = findTeam.getMembers();
+
+            // 리스트에 세팅한 것이 없음에도 값이 출력됨
+
+            // 조회
+//            Member2 findMember = em.find(Member2.class, member.getId());
+
+            // Team findTeam = em.find(Team.class, team.getId()); // 1) 연관관계 없음
+            // Team findTeam = findMember.getTeam();   // 2)
+            // List<Member2> members = findMember.getTeam().getMembers(); // 3)
+
+            // System.out.println("findTeam = " + findTeam.getName()); // 1, 2)
+            for (Member2 m : members) { // 3)
+                System.out.println("m = " + m.getUsername());
+            }
+
+            tx.commit();
+        } catch (Exception e) {
+            tx.rollback();
+        } finally {
+            em.close();
         }
 
         emf.close();
