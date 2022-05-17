@@ -4,6 +4,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class JpaMain {
@@ -180,7 +181,7 @@ public class JpaMain {
 
             // Team findTeam = em.find(Team.class, team.getId()); // 1) 연관관계 없음
             // Team findTeam = findMember.getTeam();   // 2)
-            // List<Member2> members = findMember.getTeam().getMembers(); // 3)
+            // List<Member2> members = findMember.getTeam().getMembers(); // 3)E
 
             // System.out.println("findTeam = " + findTeam.getName()); // 1, 2)
             for (Member2 m : members) { // 3)
@@ -201,10 +202,37 @@ public class JpaMain {
         tx.begin();
 
         try {
+            Movie movie = new Movie();
+            movie.setDirector("감독");
+            movie.setActor("배우");
+            movie.setName("바람과 함께 사라지다");
+            movie.setPrice(10000);
+
+            em.persist(movie);
+
+            em.flush();
+            em.clear();
+
+            Movie findMovie = em.find(Movie.class, movie.getId());
+            System.out.println("findMovie = " + findMovie);
+
+//            Item findItem = em.find(Item.class, movie.getId());
+//            System.out.println("findItem = " + findItem);
+
+            // @MappedSuperclass
+            Member_mapping member = new Member_mapping();
+            member.setCreatedBy("kim");
+            member.setCreateDate(LocalDateTime.now());
+
+            em.persist(member);
+
+            em.flush();
+            em.clear();
 
             tx.commit();
         } catch (Exception e) {
             tx.rollback();
+            e.printStackTrace();
         } finally {
             em.close();
         }

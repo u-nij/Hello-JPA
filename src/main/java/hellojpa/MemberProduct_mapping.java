@@ -12,7 +12,7 @@ public class MemberProduct_mapping {
     @JoinColumn(name = "MEMBER_ID")
     private Member_mapping member_N_M_limit;
 
-    @OneToMany
+    @ManyToOne
     @JoinColumn(name = "PRODUCT_ID")
     private Product_mapping product_N_M_limit;
 }
