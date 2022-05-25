@@ -1,9 +1,9 @@
 package hellojpa;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
-import javax.persistence.Persistence;
+import jdk.swing.interop.SwingInterOpUtils;
+import org.hibernate.Hibernate;
+
+import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -177,9 +177,9 @@ public class JpaMain {
             // 리스트에 세팅한 것이 없음에도 값이 출력됨
 
             // 조회
-//            Member2 findMember = em.find(Member2.class, member.getId());
+//            Member2 findMember = emRM.find(Member2.class, member.getId());
 
-            // Team findTeam = em.find(Team.class, team.getId()); // 1) 연관관계 없음
+            // Team findTeam = emRM.find(Team.class, team.getId()); // 1) 연관관계 없음
             // Team findTeam = findMember.getTeam();   // 2)
             // List<Member2> members = findMember.getTeam().getMembers(); // 3)E
 
@@ -196,10 +196,12 @@ public class JpaMain {
         }
 */
 
+/*
+        // =========== 고급 매핑 ===========
 
-        EntityManager em = emf.createEntityManager();
-        EntityTransaction tx = em.getTransaction();
-        tx.begin();
+        EntityManager emInheritance = emf.createEntityManager();
+        EntityTransaction txInheritance = emInheritance.getTransaction();
+        txInheritance.begin();
 
         try {
             Movie movie = new Movie();
@@ -208,12 +210,12 @@ public class JpaMain {
             movie.setName("바람과 함께 사라지다");
             movie.setPrice(10000);
 
-            em.persist(movie);
+            emInheritance.persist(movie);
 
-            em.flush();
-            em.clear();
+            emInheritance.flush();
+            emInheritance.clear();
 
-            Movie findMovie = em.find(Movie.class, movie.getId());
+            Movie findMovie = emInheritance.find(Movie.class, movie.getId());
             System.out.println("findMovie = " + findMovie);
 
 //            Item findItem = em.find(Item.class, movie.getId());
@@ -224,10 +226,180 @@ public class JpaMain {
             member.setCreatedBy("kim");
             member.setCreateDate(LocalDateTime.now());
 
-            em.persist(member);
+            emInheritance.persist(member);
+
+            emInheritance.flush();
+            emInheritance.clear();
+
+            txInheritance.commit();
+        } catch (Exception e) {
+            txInheritance.rollback();
+            e.printStackTrace();
+        } finally {
+            emInheritance.close();
+        }
+*/
+
+/*
+        // =========== 프록시(Proxy) ===========
+
+        EntityManager emProxy = emf.createEntityManager();
+        EntityTransaction txProxy = emProxy.getTransaction();
+        txProxy.begin();
+
+        try {
+            Member_Proxy member = new Member_Proxy();
+            member.setUsername("hello");
+            emProxy.persist(member);
+
+            Member_Proxy member2 = new Member_Proxy();
+            member2.setUsername("hello2");
+            emProxy.persist(member2);
+
+            emProxy.flush();
+            emProxy.clear();
+
+//            Member_Proxy findMember = em.find(Member_Proxy.class, member.getId());
+            Member_Proxy findMember = emProxy.getReference(Member_Proxy.class, member.getId());
+            System.out.println("findMember.username = " + findMember.getUsername());
+
+            // 클래스 확인
+            System.out.println("findMember.getClass() = " + findMember.getClass());
+            System.out.println("findMember.getClass().getName() = " + findMember.getClass().getName());
+
+            // find 호출 후, gerReference 호출
+            Member_Proxy member1 = new Member_Proxy();
+            member1.setUsername("hello");
+            emProxy.persist(member1);
+
+            emProxy.flush();
+            emProxy.clear();
+
+            Member_Proxy member1_ = emProxy.find(Member_Proxy.class, member1.getId());
+            System.out.println("member = " + member1_.getClass());
+
+            Member_Proxy reference = emProxy.getReference(Member_Proxy.class, member1.getId());
+            System.out.println("reference = " + reference.getClass()); // 실제 값
+
+            // JPA에서 == 비교시 한 영속성 컨텍스트에서 가져왔거나, pk가 같으면 항상 true 반환
+            System.out.println("a == a : " + (member1_ == reference));
+
+            emProxy.flush();
+            emProxy.clear();
+
+            // gerReference 호출 후, find 호출
+
+            Member_Proxy member1__ = new Member_Proxy();
+            member1__.setUsername("hello");
+            emProxy.persist(member1__);
+
+            emProxy.flush();
+            emProxy.clear();
+
+            Member_Proxy refMember = emProxy.getReference(Member_Proxy.class, member1__.getId());
+            System.out.println("refMember = " + refMember.getClass()); // 프록시
+
+            Member_Proxy fMember = emProxy.find(Member_Proxy.class, member1__.getId());
+            System.out.println("fMember = " + fMember.getClass()); // 멤버
+
+            System.out.println("refMember == fMember : " + (member1_ == fMember));
+
+            emProxy.detach(refMember);
+            refMember.getUsername();
+            // tx.commit(); 전까지 주석처리 후 사용
+
+            emProxy.flush();
+            emProxy.clear();
+
+            // 타입 체크
+            Member_Proxy m1 = emProxy.find(Member_Proxy.class, member.getId());
+            Member_Proxy m2_find = emProxy.find(Member_Proxy.class, member2.getId());
+            System.out.println("m1 == m2_find : " + (m1.getClass() == m2_find.getClass())); // true
+
+            emProxy.flush();
+            emProxy.clear();
+
+            Member_Proxy m1_ = emProxy.find(Member_Proxy.class, member.getId());
+            Member_Proxy m2_getReference = emProxy.getReference(Member_Proxy.class, member2.getId());
+            System.out.println("m1 == m2_getReference : " + (m1_.getClass() == m2_getReference.getClass())); // false
+
+            // 초기화 체크
+            System.out.println("isLoaded = " + emf.getPersistenceUnitUtil().isLoaded(m2_getReference));
+            Hibernate.initialize(m2_getReference); // 강제 초기화
+            System.out.println("isLoaded = " + emf.getPersistenceUnitUtil().isLoaded(m2_getReference));
+
+            txProxy.commit();
+        } catch (Exception e) {
+            txProxy.rollback();
+            e.printStackTrace();
+        } finally {
+            emProxy.close();
+        }
+*/
+
+/*
+        // =========== 즉시 로딩과 지연 로딩 ===========
+
+        EntityManager emLoading = emf.createEntityManager();
+        EntityTransaction txLoading = emLoading.getTransaction();
+        txLoading.begin();
+
+        try {
+            Team team = new Team();
+            team.setName("teamA");
+            emLoading.persist(team);
+
+            Member_Proxy member1 = new Member_Proxy();
+            member1.setUsername("member1");
+            member1.setTeam(team);
+            emLoading.persist(member1);
+
+            emLoading.flush();
+            emLoading.clear();
+
+//            Member_Proxy m = em.find(Member_Proxy.class, member1.getId());
+//
+//            System.out.println("m = " + m.getTeam().getClass());
+//
+//            System.out.println("============");
+//            m.getTeam().getName();
+//            System.out.println("============");
+
+            List<Member_Proxy> members = emLoading.createQuery("select m from Member m", Member_Proxy.class)
+                    .getResultList();
+            // SQL: select * from Member
+            // SQL: select * from Team where TEAM_ID = XXX
+
+            txLoading.commit();
+        } catch (Exception e) {
+            txLoading.rollback();
+            e.printStackTrace();
+        } finally {
+            emLoading.close();
+        }
+*/
+
+        // =========== 영속성 전이(CASCADE)와 고아 객체 ==========
+
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        try {
+            Child child1 = new Child();
+            Child child2 = new Child();
+
+            Parent parent = new Parent();
+            parent.addChild(child1);
+            parent.addChild(child2);
+
+            em.persist(parent); // cascade = CascadeType.ALL 옵션 있을 때
 
             em.flush();
             em.clear();
+
+            Parent findParent = em.find(Parent.class, parent.getId());
+            findParent.getChildList().remove(0); // orphanRemoval = true 옵션 있을 때
 
             tx.commit();
         } catch (Exception e) {
