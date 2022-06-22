@@ -6,8 +6,12 @@ import org.hibernate.Hibernate;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 public class JpaMain {
+
+    public JpaMain() {
+    }
 
     public static void main(String[] args) {
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("hello");
@@ -379,11 +383,12 @@ public class JpaMain {
         }
 */
 
+/*
         // =========== 영속성 전이(CASCADE)와 고아 객체 ==========
 
-        EntityManager em = emf.createEntityManager();
-        EntityTransaction tx = em.getTransaction();
-        tx.begin();
+        EntityManager emCasOrp = emf.createEntityManager();
+        EntityTransaction txCasOrp = emCasOrp.getTransaction();
+        txCasOrp.begin();
 
         try {
             Child child1 = new Child();
@@ -393,13 +398,99 @@ public class JpaMain {
             parent.addChild(child1);
             parent.addChild(child2);
 
-            em.persist(parent); // cascade = CascadeType.ALL 옵션 있을 때
+            emCasOrp.persist(parent); // cascade = CascadeType.ALL 옵션 있을 때
+
+            emCasOrp.flush();
+            emCasOrp.clear();
+
+            Parent findParent = emCasOrp.find(Parent.class, parent.getId());
+            findParent.getChildList().remove(0); // orphanRemoval = true 옵션 있을 때
+
+            txCasOrp.commit();
+        } catch (Exception e) {
+            txCasOrp.rollback();
+            e.printStackTrace();
+        } finally {
+            emCasOrp.close();
+        }
+*/
+
+        // =========== 값 타입 ===========
+
+        EntityManager em = emf.createEntityManager();
+        EntityTransaction tx = em.getTransaction();
+        tx.begin();
+
+        try {
+//            Address address = new Address("city", "street", "10000");
+//            Member_Type member = new Member_Type();
+//            member.setUsername("member1");
+//            member.setHomeAddress(address);
+//            em.persist(member);
+
+            /*
+            Address copyAddress = new Address(address.getCity(), address.getCity(), address.getZipcode());
+
+            Member_Type member2 = new Member_Type();
+            member2.setUsername("member2");
+            member2.setHomeAddress(copyAddress);
+            em.persist(member2);
+
+            member.getHomeAddress().setCity("newCity");
+             */
+
+            // 불변 객체 Address
+            // 새로 만들어서 통째로 갈아 끼워야 함
+//            Address newAddress = new Address("NewCity", address.getCity(), address.getZipcode());
+//            member.setHomeAddress(newAddress);
+
+            Member_Type member = new Member_Type();
+            member.setUsername("member");
+            member.setHomeAddress(new Address("homeCity", "street", "10000"));
+
+            member.getFavoriteFoods().add("치킨");
+            member.getFavoriteFoods().add("족발");
+            member.getFavoriteFoods().add("피자");
+
+            member.getAddressHistory().add(new AddressEntity("old1", "street", "10000"));
+            member.getAddressHistory().add(new AddressEntity("old2", "street", "10000"));
+
+            em.persist(member);
 
             em.flush();
             em.clear();
 
-            Parent findParent = em.find(Parent.class, parent.getId());
-            findParent.getChildList().remove(0); // orphanRemoval = true 옵션 있을 때
+
+            System.out.println("================ 조회 ================");
+            Member_Type findMember = em.find(Member_Type.class, member.getId()); // SELECT문
+
+            // 조회
+//            List<Address> addressHistory = findMember.getAddressHistory();
+//            for (Address address : addressHistory) { // iter
+//                System.out.println("address = " + address.getCity());
+//            }
+
+            Set<String> favoriteFoods = findMember.getFavoriteFoods();
+            for (String favoriteFood : favoriteFoods) {
+                System.out.println("favoriteFood = " + favoriteFood);
+            }
+
+            // 수정
+            // homeCity -> newCity
+//            findMember.getHomeAddress().setCity("newCity"); // 하면 안됨
+            Address a = findMember.getHomeAddress();
+            findMember.setHomeAddress(new Address("newCity", a.getStreet(), a.getZipcode()));
+
+            // 치킨 -> 한식
+            findMember.getFavoriteFoods().remove("치킨");
+            findMember.getFavoriteFoods().add("한식");
+
+//            findMember.getAddressHistory()
+//                    .remove(new Address("old1", "street", "10000"));
+//                    // equals()와 hashCode()가 제대로 구현되어야 하는 이유
+//            findMember.getAddressHistory()
+//                    .add(new Address("newCity", "street", "10000"));
+
 
             tx.commit();
         } catch (Exception e) {
@@ -408,7 +499,7 @@ public class JpaMain {
         } finally {
             em.close();
         }
-
+        
         emf.close();
     }
 }

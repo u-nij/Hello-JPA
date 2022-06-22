@@ -2,9 +2,14 @@ package hellojpa;
 
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Entity(name = "Member")
-public class Member_Proxy extends BaseEntity {
+public class Member_Type {
 
     @Id
     @GeneratedValue
@@ -14,17 +19,33 @@ public class Member_Proxy extends BaseEntity {
     @Column(name = "USERNAME")
     private String username;
 
-    @ManyToOne(fetch = FetchType.LAZY) // 프록시 객체 조회. 즉, Member_Proxy 클래스만 DB에서 조회
-    @JoinColumn
-    private Team team;
+    @Embedded
+    private Period workPeriod;
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+    @Embedded
+    private Address homeAddress;
 
-    public String getUsername() {
-        return username;
-    }
+    @ElementCollection
+    @CollectionTable(name = "FAVORITE_FOOD", joinColumns = @JoinColumn(name = "MEMBER_ID"))
+    @Column(name = "FOOD_NAME") // String으로 값이 하나이고 정의하지 않았기 때문에, 예외적으로 처리해줌
+    private Set<String> favoriteFoods = new HashSet<>();
+
+//    @ElementCollection
+//    @CollectionTable(name = "ADDRESS", joinColumns = @JoinColumn(name = "MEMBER_ID"))
+//    private List<Address> addressHistory = new ArrayList<>();
+    // -> 값 타입 컬렉션 대신에 일대다 관계 고려해 엔티티 만듦
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "MEMBER_ID")
+    private List<AddressEntity> addressHistory = new ArrayList<>();
+
+//    @Embedded
+//    @AttributeOverrides({
+//            @AttributeOverride(name = "city", column = @Column(name = "WORK_CITY")),
+//            @AttributeOverride(name = "street", column = @Column(name = "WORK_STREET")),
+//            @AttributeOverride(name = "zipcode", column = @Column(name = "WORK_ZIPCODE"))
+//    })
+//    private Address workAddress;
+
 
     public Long getId() {
         return id;
@@ -34,11 +55,43 @@ public class Member_Proxy extends BaseEntity {
         this.id = id;
     }
 
-    public Team getTeam() {
-        return team;
+    public String getUsername() {
+        return username;
     }
 
-    public void setTeam(Team team) {
-        this.team = team;
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public Period getWorkPeriod() {
+        return workPeriod;
+    }
+
+    public void setWorkPeriod(Period workPeriod) {
+        this.workPeriod = workPeriod;
+    }
+
+    public Address getHomeAddress() {
+        return homeAddress;
+    }
+
+    public void setHomeAddress(Address homeAddress) {
+        this.homeAddress = homeAddress;
+    }
+
+    public Set<String> getFavoriteFoods() {
+        return favoriteFoods;
+    }
+
+    public void setFavoriteFoods(Set<String> favoriteFoods) {
+        this.favoriteFoods = favoriteFoods;
+    }
+
+    public List<AddressEntity> getAddressHistory() {
+        return addressHistory;
+    }
+
+    public void setAddressHistory(List<AddressEntity> addressHistory) {
+        this.addressHistory = addressHistory;
     }
 }

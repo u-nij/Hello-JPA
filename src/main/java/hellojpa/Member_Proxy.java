@@ -3,7 +3,7 @@ package hellojpa;
 
 import javax.persistence.*;
 
-@Entity(name = "Member")
+@Entity
 public class Member_Proxy extends BaseEntity {
 
     @Id
